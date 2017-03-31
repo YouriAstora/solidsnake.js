@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+</head>
+
+<script src="matter.js"></script>
+
+<body style="background-color: #515e63;">
+    <h1 style="color: white; margin-left: 100px; font: 48px monospace;">Solid-Snake.js</h1>
+
+    <span id="stats"></span>
+
+    <canvas id="canvas1"
+            style="background-color: black;
+                   border: 3px solid;"></canvas>
+
+    <br>
+
+    <script src="UIModule.js"></script>
+    <script src="solidSnake.js"></script>
+
+
+    <script type="text/javascript">
+        var canvas = document.getElementById('canvas1');
+        var ctx = canvas.getContext("2d");
+
+        if(!SOLIDSNAKE.gameLauncher.gameRunning) {
+            SOLIDSNAKE_UI.displayUI(ctx)
+        }
+
+    </script>
+    <br>
+    <button onclick="SOLIDSNAKE.gameLauncher.stopGame(); SOLIDSNAKE_UI.displayUI(ctx);">  Click to stop </button>
+</body>
+</html>
