@@ -171,7 +171,7 @@ var SOLIDSNAKE = (function () {
                 bod.render.lineWidth  = 7
                 Matter.Composite.add(snakeBody,bod)
             }
-            Composites.chain(snakeBody, 0, 0, 0, 0, { stiffness: 1, length: 20 });
+            Composites.chain(snakeBody, 0, 0, 0, 0, { stiffness: 1, length: 20 , render: {visible: false} });
             return snakeBody;
         };
 
@@ -182,7 +182,8 @@ var SOLIDSNAKE = (function () {
                    pointA: { x:   0, y: 0 },
                    pointB: { x: -15*Math.cos(head.angle), y: 0 },
                    stiffness: 1,
-                   length:11
+                   length:11,
+                   render: {visible: false}
             }));
         }
     }
