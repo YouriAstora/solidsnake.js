@@ -295,6 +295,7 @@ var SOLIDSNAKE = (function () {
     function Game(){
         // this.players = players
         this.nbPlayers = 0;
+        this.winner = undefined
         this.gameLoop = undefined;
         this.gameRunning = false;
         this.playersScores = []
@@ -349,10 +350,11 @@ var SOLIDSNAKE = (function () {
                     this.initRound()
                 }
                 //run the game engine and players update
-                this.gameLoop = setInterval(function() {
+                this.gameLoop = setInterval(function(gameInstance) {
                     updatePlayers()
+                    gameInstance.computeScores()
                     Engine.update(engine, 1000 / FPS);
-                }, 1000 / FPS);
+                }, 1000 / FPS, this);
                 this.gameRunning = true;
             }
         }
@@ -365,7 +367,6 @@ var SOLIDSNAKE = (function () {
                 clearInterval(this.gameLoop)
                 //stop the rendering
                 this.stopRendering()
-                this.computeScores()
             }
         }
 
@@ -379,6 +380,7 @@ var SOLIDSNAKE = (function () {
         this.clearGame = function(){
             World.clear(world)
             this.nbPlayers = 0
+            this.winner = undefined            
             players = []
         }
 
@@ -427,7 +429,7 @@ var SOLIDSNAKE = (function () {
 
         this.computeScores = function(){
             var aliveCpt = 0, lastAliveFoundIndex = 0;
-            for(var i = 0; i < this.nbPlayers; i++){
+            for(var i = 0; i < players.length; i++){
                 if(players[i].isAlive){
                     aliveCpt++;
                     lastAliveFoundIndex = i;
@@ -435,7 +437,7 @@ var SOLIDSNAKE = (function () {
             }
             if(aliveCpt === 1) {
                 this.playersScores[lastAliveFoundIndex] += 1;
-                console.log("Player", lastAliveFoundIndex+1, "won")
+                this.winner = players[lastAliveFoundIndex]
             }
         }
 
@@ -444,6 +446,11 @@ var SOLIDSNAKE = (function () {
     Events.on(render, "afterRender", function(){
         if(!gameLauncher.startScreenDisplayed){
             SOLIDSNAKE_UI.displayStartScreen(render.context, players, GAME_WIDTH, GAME_HEIGHT)
+        }
+        else{
+            if(gameLauncher.winner != undefined){
+                SOLIDSNAKE_UI.displayEndScreen(render.context, gameLauncher.winner)
+            }
 
         }
     });

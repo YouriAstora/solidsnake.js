@@ -135,15 +135,19 @@ var SOLIDSNAKE_UI = (function() {
         ctx.fillText(text, x, y)
     }
 
+    function displayBlackPanel(ctx, w, h){
+        ctx.fillStyle = 'black'
+        ctx.globalAlpha = 0.4
+        ctx.fillRect(w/6,h/6,w*2/3,h*2/3)
+        ctx.globalAlpha = 1
+    }
+
     function displayStartScreen(ctx, players){
         var GAME_WIDTH = SOLIDSNAKE.GAME_WIDTH
         var GAME_HEIGHT = SOLIDSNAKE.GAME_HEIGHT
 
-        ctx.fillStyle = 'black'
-        ctx.globalAlpha = 0.4
-        ctx.fillRect(GAME_WIDTH/6,GAME_HEIGHT/6,GAME_WIDTH*2/3,GAME_HEIGHT*2/3)
+        displayBlackPanel(ctx, GAME_WIDTH, GAME_HEIGHT)
 
-        ctx.globalAlpha = 1
         ctx.fillStyle = players[0].color
         ctx.font = "24px monospace"
 
@@ -174,6 +178,20 @@ var SOLIDSNAKE_UI = (function() {
         ctx.font = "82px mono"
         ctx.fillStyle = 'red'
         ctx.fillText(SOLIDSNAKE.gameLauncher.startScreenRemainingDelay/1000,GAME_WIDTH/2, GAME_HEIGHT/2)
+
+    }
+
+    function displayEndScreen(ctx, winningPlayer){
+        var GAME_WIDTH = SOLIDSNAKE.GAME_WIDTH
+        var GAME_HEIGHT = SOLIDSNAKE.GAME_HEIGHT
+
+        displayBlackPanel(ctx, GAME_WIDTH, GAME_HEIGHT)
+
+        ctx.globalAlpha = 1
+        ctx.font = "42px mono"
+        ctx.fillStyle = winningPlayer.color
+        var winText = "Player " + winningPlayer.playerNumber + " has destroyed YOUR BALLS !"
+        ctx.fillText(winText, (GAME_WIDTH - ctx.measureText(winText).width)/2, GAME_HEIGHT/2)
     }
 
     var  buttonDefaultColor = 'grey'
@@ -255,6 +273,7 @@ var SOLIDSNAKE_UI = (function() {
     // this is the object that will be `startScreen`
     return {
         displayStartScreen: displayStartScreen,
+        displayEndScreen: displayEndScreen,
         closeUI: closeUI,
         displayUI: displayUI
     }
