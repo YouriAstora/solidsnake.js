@@ -93,6 +93,7 @@ var SOLIDSNAKE_UI = (function() {
             else {
                 canvasCtx.fillStyle = this.defaultColor
             }
+
             roundedRectangle(this.x,this.y,this.width,this.height, 15, canvasCtx)
 
             if(this.text != "" && this.text != undefined){
@@ -143,12 +144,9 @@ var SOLIDSNAKE_UI = (function() {
     }
 
     function displayStartScreen(ctx, players){
-        var GAME_WIDTH = SOLIDSNAKE.GAME_WIDTH
+        var GAME_WIDTH  = SOLIDSNAKE.GAME_WIDTH
         var GAME_HEIGHT = SOLIDSNAKE.GAME_HEIGHT
 
-        displayBlackPanel(ctx, GAME_WIDTH, GAME_HEIGHT)
-
-        ctx.fillStyle = players[0].color
         ctx.font = "24px monospace"
 
         var margin = 50
@@ -181,7 +179,7 @@ var SOLIDSNAKE_UI = (function() {
 
     }
 
-    function displayEndScreen(ctx, winningPlayer){
+    function displayEndScreen(ctx, winningPlayer, type){
         var GAME_WIDTH = SOLIDSNAKE.GAME_WIDTH
         var GAME_HEIGHT = SOLIDSNAKE.GAME_HEIGHT
 
@@ -190,37 +188,80 @@ var SOLIDSNAKE_UI = (function() {
         ctx.globalAlpha = 1
         ctx.font = "42px mono"
         ctx.fillStyle = winningPlayer.color
-        var winText = "Player " + winningPlayer.playerNumber + " has destroyed YOUR BALLS !"
+        var winText
+        if(type === "roundEnd") winText = "Player " + winningPlayer.playerNumber + " wins this match"
+        if(type === "matchEnd") winText = "Player " + winningPlayer.playerNumber + " has destroyed YOUR BALLS !"
+
         ctx.fillText(winText, (GAME_WIDTH - ctx.measureText(winText).width)/2, GAME_HEIGHT/2)
     }
 
+    function displayPlayerScores(ctx, players, scores){
+        var GAME_WIDTH  = SOLIDSNAKE.GAME_WIDTH
+        var GAME_HEIGHT = SOLIDSNAKE.GAME_HEIGHT
+
+        ctx.font = "32px monospace"
+
+        var margin = 25
+        var playerInfoArray = [{}, {}, {}, {}]
+        //Player1
+        playerInfoArray[0].score = scores[0]
+        playerInfoArray[0].x =  margin
+        playerInfoArray[0].y =  margin*2
+        //Player2
+        playerInfoArray[1].score = scores[1]
+        playerInfoArray[1].x = GAME_WIDTH - margin - ctx.measureText(playerInfoArray[1].score).width
+        playerInfoArray[1].y = GAME_HEIGHT - margin
+        //Player3
+        playerInfoArray[2].score = scores[2]
+        playerInfoArray[2].x = GAME_WIDTH - margin - ctx.measureText(playerInfoArray[1].score).width
+        playerInfoArray[2].y = margin*2
+        //Player4
+        playerInfoArray[3].score = scores[3]
+        playerInfoArray[3].x = margin
+        playerInfoArray[3].y = GAME_HEIGHT  - margin
+
+        for(var i = 0; i < players.length; i++){
+            ctx.fillStyle = players[i].color
+            ctx.fillText(playerInfoArray[i].score, playerInfoArray[i].x, playerInfoArray[i].y)
+        }
+    }
+
+    //START MENU OBJECTS
     var  buttonDefaultColor = 'grey'
     var playButton = new UIObject(550,350,300,200 ,  '#00d07a')
-    var p2 = new UIObject(20,  400 ,100,100,  buttonDefaultColor); p2.text = '2p';
-    var p3 = new UIObject(140, 400 ,100,100,  buttonDefaultColor); p3.text = "3p";
-    var p4 = new UIObject(260, 400, 100,100,  buttonDefaultColor); p4.text = "4p";
-
     playButton.text = "Play Game";
     playButton.textSize = 48;
 
+    var p2 = new UIObject(20,  300 ,100,100,  buttonDefaultColor); p2.text = '2p';
+    var p3 = new UIObject(140, 300 ,100,100,  buttonDefaultColor); p3.text = "3p";
+    var p4 = new UIObject(260, 300, 100,100,  buttonDefaultColor); p4.text = "4p";
+
+    var r1 = new UIObject(20,  520 ,100,100,  buttonDefaultColor); r1.text = '3';
+    var r2 = new UIObject(140, 520 ,100,100,  buttonDefaultColor); r2.text = "5";
+    var r3 = new UIObject(260, 520, 100,100,  buttonDefaultColor); r3.text = "10";
+
     var gameTitle = "[ Solid Snake ]"
-    var playerNumberStr = "Number of Players :"
+    var playerNumberStr = "Number of Players"
+    var roundNumberStr  = "Number of Rounds"
 
     uiObjects = []
-    uiObjects.push(playButton, p2,p3,p4)
+    uiObjects.push(playButton, p2,p3,p4, r1, r2, r3)
 
-    var nbPlayers = 2, lastPressedIndex = 0;
-    function selectNumberOfPlayers(buttons){
-        for(var i=0; i < buttons.length; i++){
+    var nbPlayers = 2, nbRounds = 3, lastPressedIndex = 0;
+
+    function selectNumberOfItems(buttons){
+        var selectedButtonNumber = 0;
+        for(var i = 0; i < buttons.length; i++){
             if(buttons[i].clicked) lastPressedIndex = i;
             if(i === lastPressedIndex){
-                nbPlayers = i+2;
+                selectedButtonNumber = i;
                 buttons[i].defaultColor = buttons[i].hoverColor;
             }
             else{
                 buttons[i].defaultColor = 'grey'
             }
         }
+        return selectedButtonNumber;
     }
 
     // draw the main menu to the canvas
@@ -233,7 +274,9 @@ var SOLIDSNAKE_UI = (function() {
             uiObjects[i].draw()
         }
 
-        printText(playerNumberStr, 30, 350, 'white', 28, ctx)
+        printText(playerNumberStr, 30, 250, 'white', 28, ctx)
+        printText(roundNumberStr , 30, 480, 'white', 28, ctx)
+
         ctx.font = 48 + 'px monospace';
         printText(gameTitle, canvasCenter.x-(ctx.measureText(gameTitle).width)/2 , canvasCenter.y/3, 'white', 48, ctx)
     }
@@ -243,22 +286,29 @@ var SOLIDSNAKE_UI = (function() {
             uiObjects[i].update()
         }
 
-        selectNumberOfPlayers([p2,p3,p4])
+        nbPlayers = selectNumberOfItems([p2,p3,p4]) + 2
+        var bn  = selectNumberOfItems([r1,r2,r3])
+        switch(bn){
+            case 0: nbRounds = 3; break;
+            case 1: nbRounds = 5; break;
+            case 2: nbRounds = 10; break;
+        }
 
         if(playButton.clicked){
-            closeUI();
+            closeMenu();
+            SOLIDSNAKE.gameLauncher.setScoreLimit(nbRounds)
             SOLIDSNAKE.gameLauncher.startNewGame(nbPlayers)
         }
     }
 
-    var closeUI = function(){
+    var closeMenu = function(){
         if(isDisplayed){
             clearInterval(uiLoop)
             isDisplayed = false
         }
     }
 
-    var displayUI = function(ctx){
+    var displayMenu = function(ctx){
         canvas = ctx.canvas;
         canvasCenter.x = canvas.width/2; canvasCenter.y = canvas.height/2;
         if(!isDisplayed){
@@ -274,8 +324,9 @@ var SOLIDSNAKE_UI = (function() {
     return {
         displayStartScreen: displayStartScreen,
         displayEndScreen: displayEndScreen,
-        closeUI: closeUI,
-        displayUI: displayUI
+        displayPlayerScores: displayPlayerScores,
+        closeMenu: closeMenu,
+        displayMenu: displayMenu
     }
 
 }());

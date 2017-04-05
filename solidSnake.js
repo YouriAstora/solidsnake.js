@@ -60,6 +60,8 @@ var SOLIDSNAKE = (function () {
     function Snake(x,y,color,playerNumber){
         this.x = x
         this.y = y
+        this.initAngle = 0
+        this.initialPos = {x:x, y:y}
         this.headRadius = 15
         this.color = color
         this.velocity = 10
@@ -93,7 +95,27 @@ var SOLIDSNAKE = (function () {
         }
 
         this.gainLife = function(){
-            // var bod = Bodies.circle(100,100, 10, { collisionFilter: { group: this.group } });
+            //no possibility to gain life for now in the game
+        }
+
+        this.resetSnake = function(){
+            //clear old body
+            World.remove(world, this.snakeBody)
+            //re-init
+            this.setPosition(this.initialPos, this.initAngle)
+
+            this.life = 5
+            this.isAlive = true
+            this.snakeBody = createSnakeBody(this.life, this.color, this.group)
+            World.add(world, this.snakeBody)
+
+            attachHeadToBody(this.headBody, this.snakeBody)
+            resetPlayerColor(this)
+        }
+
+        this.setPosition = function(pos, angle){
+            Body.setAngle(this.headBody, angle);
+            Body.setPosition(this.headBody, {x: pos.x, y: pos.y})
         }
 
         this.move = function(){
@@ -104,7 +126,10 @@ var SOLIDSNAKE = (function () {
 
         this.create = function (playerNumber){
             this.headBody.label = "Player" + playerNumber
-            if(playerNumber === 3 || playerNumber === 2) Body.rotate(this.headBody,-Math.PI)
+            if(playerNumber === 3 || playerNumber === 2) {
+                this.initAngle = -Math.PI
+                Body.rotate(this.headBody,this.initAngle)
+            }
             this.headBody.friction = 0
             this.headBody.frictionStatic = 1
             this.headBody.frictionAir = 0.0
@@ -214,9 +239,10 @@ var SOLIDSNAKE = (function () {
         this.width  = w
         this.height = h
         this.static = fixed
+        this.label  = "default"
         this.body   = Bodies.rectangle(this.x, this.y, this.width, this.height, {isStatic: this.static})
 
-        this.randomPosition = function(){
+        this.generateRandomPosition = function(){
             this.x =      Math.floor(Math.random() * (GAME_WIDTH  - BORDER_THICKNESS ))
             this.y =      Math.floor(Math.random() * (GAME_HEIGHT + BORDER_THICKNESS ))
             this.width  = Math.random() * 100
@@ -242,9 +268,16 @@ var SOLIDSNAKE = (function () {
                 this.body.isStatic = true;
                 this.body.render.fillStyle = 'grey'
             }
+        }
 
+        this.addToWorld = function(){
             World.add(world, this.body)
         }
+
+        this.removeFromWorld = function(){
+            World.remove(world, this.body)
+        }
+
 
     }
 
@@ -296,13 +329,19 @@ var SOLIDSNAKE = (function () {
     function Game(){
         // this.players = players
         this.nbPlayers = 0;
-        this.winner = undefined
+        this.winner = undefined;
+        this.lastRoundWinner = undefined;
+        this.scoreLimit = 3; //matches number
         this.gameLoop = undefined;
         this.gameRunning = false;
-        this.playersScores = []
+        this.playersScores = [0,0,0,0]
+
         this.startScreenDelay = 5000
         this.startScreenRemainingDelay = 5000
         this.startScreenDisplayed = false
+        this.roundEnded = false
+
+        this.randomObstacles = []
 
         this.initGame = function(playerNumber){
             if(playerNumber > 4) playerNumber = 4 //MAX VALUE
@@ -321,10 +360,6 @@ var SOLIDSNAKE = (function () {
             var o1 = new Obstacle(GAME_WIDTH/2,GAME_HEIGHT/2,GAME_HEIGHT/3, BORDER_THICKNESS, true);
             var o2 = new Obstacle(GAME_WIDTH/2,GAME_HEIGHT/2,BORDER_THICKNESS, GAME_HEIGHT/3, true);
             World.add(world, [o1.body,o2.body])
-            this.addRandomObstacle();
-            this.addRandomObstacle();
-            this.addRandomObstacle();
-            this.addRandomObstacle();
         }
 
         this.addPlayer = function(x,y,controls, playerNumber){
@@ -364,10 +399,12 @@ var SOLIDSNAKE = (function () {
             if(this.gameRunning){
                 this.gameRunning = false
                 this.startScreenDisplayed = false
+                this.playersScores = [0,0,0,0]
                 //stop gameLoop
                 clearInterval(this.gameLoop)
                 //stop the rendering
                 this.stopRendering()
+                SOLIDSNAKE_UI.displayMenu(render.context);
             }
         }
 
@@ -381,7 +418,7 @@ var SOLIDSNAKE = (function () {
         this.clearGame = function(){
             World.clear(world)
             this.nbPlayers = 0
-            this.winner = undefined            
+            this.winner = undefined
             players = []
         }
 
@@ -395,14 +432,25 @@ var SOLIDSNAKE = (function () {
 
         this.addRandomObstacle= function(){
             var obst = new Obstacle();
-            obst.randomPosition();
+            obst.label = "randomObst"
+            obst.generateRandomPosition();
+            obst.addToWorld();
+            this.randomObstacles.push(obst)
         }
 
         this.initRound = function(){
+            this.roundEnded = false
             for(var i = 0; i < players.length; i++) {
                 players[i].velocity = 0
                 players[i].killable = false
+                players[i].life = 5
+                players[i].isAlive = 5
             }
+
+            this.addRandomObstacle();
+            this.addRandomObstacle();
+            this.addRandomObstacle();
+            this.addRandomObstacle();
 
             var timeout = setTimeout(function(obj){
                 obj.startScreenDisplayed = true
@@ -421,11 +469,31 @@ var SOLIDSNAKE = (function () {
             }, 1000, this)
         }
 
+        this.endRound = function(){
+            //cleaning random obstacles
+            for(var i = 0; i < this.randomObstacles.length; i++){
+                this.randomObstacles[i].removeFromWorld()
+            }
+
+            this.randomObstacles = []
+            this.startScreenDisplayed = false
+
+            for(var i = 0; i < players.length; i++){
+                players[i].resetSnake()
+            }
+
+            this.initRound()
+        }
+
         this.generateRandomColor = function(){
             var r = Math.floor(Math.random()*player_colors.length)
             var color = player_colors[r];
             player_colors.splice(r,1)
             return color;
+        }
+
+        this.setScoreLimit = function(limit){
+            this.scoreLimit = limit;
         }
 
         this.computeScores = function(){
@@ -436,24 +504,34 @@ var SOLIDSNAKE = (function () {
                     lastAliveFoundIndex = i;
                 }
             }
-            if(aliveCpt === 1) {
+            if(aliveCpt === 1 && !this.roundEnded) { //round is over
                 this.playersScores[lastAliveFoundIndex] += 1;
-                this.winner = players[lastAliveFoundIndex]
+                this.roundEnded = true
+                this.lastRoundWinner = players[lastAliveFoundIndex]
+                if(this.playersScores[lastAliveFoundIndex] >= this.scoreLimit){
+                    this.winner = players[lastAliveFoundIndex]
+                    setTimeout(function(obj){obj.stopGame()},4000, this)
+                }
+                // trigger 4 seconds waiting before new round
+                setTimeout(function(obj){obj.endRound()},4000, this)
             }
         }
 
     }
 
     Events.on(render, "afterRender", function(){
-        if(!gameLauncher.startScreenDisplayed){
+        if(!gameLauncher.startScreenDisplayed){ //starting counter screen
             SOLIDSNAKE_UI.displayStartScreen(render.context, players, GAME_WIDTH, GAME_HEIGHT)
         }
         else{
-            if(gameLauncher.winner != undefined){
-                SOLIDSNAKE_UI.displayEndScreen(render.context, gameLauncher.winner)
+            if(gameLauncher.winner !== undefined){
+                SOLIDSNAKE_UI.displayEndScreen(render.context, gameLauncher.winner, "matchEnd")
             }
-
+            else if(gameLauncher.roundEnded){
+                SOLIDSNAKE_UI.displayEndScreen(render.context, gameLauncher.lastRoundWinner, "roundEnd")
+            }
         }
+        SOLIDSNAKE_UI.displayPlayerScores(render.context, players, gameLauncher.playersScores)
     });
 
 
