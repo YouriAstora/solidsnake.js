@@ -110,9 +110,6 @@ var SOLIDSNAKE_UI = (function() {
                 if(mouse.clicked){
                     this.clicked = true
                 }
-                // else {
-                //     this.pressed = false
-                // }
             }
             else{
                 this.hovered = false
@@ -247,10 +244,10 @@ var SOLIDSNAKE_UI = (function() {
     uiObjects = []
     uiObjects.push(playButton, p2,p3,p4, r1, r2, r3)
 
-    var nbPlayers = 2, nbRounds = 3, lastPressedIndex = 0;
+    var nbPlayers = 2, nbRounds = 3, lastClickedPlayerIndex = 0, lastClickedRoundIndex = 0;
 
-    function selectNumberOfItems(buttons){
-        var selectedButtonNumber = 0;
+    function selectNumberOfItems(lastPressedIndex, buttons){
+        var selectedButtonIndex = lastPressedIndex
         for(var i = 0; i < buttons.length; i++){
             if(buttons[i].clicked) lastPressedIndex = i;
             if(i === lastPressedIndex){
@@ -286,9 +283,10 @@ var SOLIDSNAKE_UI = (function() {
             uiObjects[i].update()
         }
 
-        nbPlayers = selectNumberOfItems([p2,p3,p4]) + 2
-        var bn  = selectNumberOfItems([r1,r2,r3])
-        switch(bn){
+        lastClickedPlayerIndex = selectNumberOfItems(lastClickedPlayerIndex,  [p2,p3,p4])
+        nbPlayers = lastClickedPlayerIndex + 2
+        lastClickedRoundIndex  =  selectNumberOfItems(lastClickedRoundIndex,  [r1,r2,r3])
+        switch(lastClickedRoundIndex){
             case 0: nbRounds = 3; break;
             case 1: nbRounds = 5; break;
             case 2: nbRounds = 10; break;

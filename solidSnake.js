@@ -333,9 +333,10 @@ var SOLIDSNAKE = (function () {
         this.lastRoundWinner = undefined;
         this.scoreLimit = 3; //matches number
         this.gameLoop = undefined;
+        this.startScreenLoop = undefined;
         this.gameRunning = false;
         this.playersScores = [0,0,0,0]
-
+        this.startScreenTimeout = undefined
         this.startScreenDelay = 5000
         this.startScreenRemainingDelay = 5000
         this.startScreenDisplayed = false
@@ -400,10 +401,19 @@ var SOLIDSNAKE = (function () {
                 this.gameRunning = false
                 this.startScreenDisplayed = false
                 this.playersScores = [0,0,0,0]
+                //stop start screen loop in case it's running
+                clearInterval(this.startScreenLoop)
+                clearTimeout(this.startScreenTimeout)
+                this.startScreenRemainingDelay = 5000
+                this.clearGame()
+
                 //stop gameLoop
                 clearInterval(this.gameLoop)
+
                 //stop the rendering
                 this.stopRendering()
+
+                //display Game menu
                 SOLIDSNAKE_UI.displayMenu(render.context);
             }
         }
@@ -439,6 +449,10 @@ var SOLIDSNAKE = (function () {
         }
 
         this.initRound = function(){
+            for(var i = 0; i < players.length; i++){
+                players[i].resetSnake()
+            }
+
             this.roundEnded = false
             for(var i = 0; i < players.length; i++) {
                 players[i].velocity = 0
@@ -452,7 +466,7 @@ var SOLIDSNAKE = (function () {
             this.addRandomObstacle();
             this.addRandomObstacle();
 
-            var timeout = setTimeout(function(obj){
+            this.startScreenTimeout = setTimeout(function(obj){
                 obj.startScreenDisplayed = true
                 for(var i = 0; i < players.length; i++){
                     players[i].velocity = 10
@@ -460,11 +474,11 @@ var SOLIDSNAKE = (function () {
                 }
             }, this.startScreenDelay, this)
 
-            var self = setInterval(function(obj){
+            this.startScreenLoop = setInterval(function(obj){
                 obj.startScreenRemainingDelay -= 1000
                 if(obj.startScreenRemainingDelay <= 0){
                     obj.startScreenRemainingDelay = obj.startScreenDelay
-                    clearInterval(self) //stop count
+                    clearInterval(obj.startScreenLoop) //stop count
                 }
             }, 1000, this)
         }
@@ -477,12 +491,6 @@ var SOLIDSNAKE = (function () {
 
             this.randomObstacles = []
             this.startScreenDisplayed = false
-
-            for(var i = 0; i < players.length; i++){
-                players[i].resetSnake()
-            }
-
-            this.initRound()
         }
 
         this.generateRandomColor = function(){
@@ -510,10 +518,13 @@ var SOLIDSNAKE = (function () {
                 this.lastRoundWinner = players[lastAliveFoundIndex]
                 if(this.playersScores[lastAliveFoundIndex] >= this.scoreLimit){
                     this.winner = players[lastAliveFoundIndex]
-                    setTimeout(function(obj){obj.stopGame()},4000, this)
+                    setTimeout(function(obj){obj.endRound(); obj.stopGame()},4000, this)
+                    return;
                 }
-                // trigger 4 seconds waiting before new round
-                setTimeout(function(obj){obj.endRound()},4000, this)
+                else{
+                    // trigger 4 seconds waiting before new round
+                    setTimeout(function(obj){obj.endRound(); obj.initRound()},4000, this)
+                }
             }
         }
 
@@ -534,11 +545,9 @@ var SOLIDSNAKE = (function () {
         SOLIDSNAKE_UI.displayPlayerScores(render.context, players, gameLauncher.playersScores)
     });
 
-
-
+    //GAME MODULE RETURN
     var gameLauncher = new Game()
 
-    //GAME MODULE RETURN
     return {
         GAME_WIDTH: GAME_WIDTH,
         GAME_HEIGHT: GAME_HEIGHT,
